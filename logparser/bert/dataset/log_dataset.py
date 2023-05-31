@@ -1,11 +1,24 @@
-from torch.utils.data import Dataset
-import torch
 import random
-import numpy as np
 from collections import defaultdict
 
+import numpy as np
+import torch
+from torch.utils.data import Dataset
+
+
 class LogDataset(Dataset):
-    def __init__(self, log_corpus, time_corpus, vocab, seq_len, corpus_lines=None, encoding="utf-8", on_memory=True, predict_mode=False, mask_ratio=0.15):
+    def __init__(
+        self,
+        log_corpus,
+        time_corpus,
+        vocab,
+        seq_len,
+        corpus_lines=None,
+        encoding="utf-8",
+        on_memory=True,
+        predict_mode=False,
+        mask_ratio=0.15,
+    ):
         """
 
         :param corpus: log sessions/line
@@ -116,8 +129,9 @@ class LogDataset(Dataset):
             time_label = seq[3][:seq_len]
 
             padding = [self.vocab.pad_index for _ in range(seq_len - len(bert_input))]
-            bert_input.extend(padding), bert_label.extend(padding), time_input.extend(padding), time_label.extend(
-                padding)
+            bert_input.extend(padding), bert_label.extend(padding), time_input.extend(
+                padding
+            ), time_label.extend(padding)
 
             time_input = np.array(time_input)[:, np.newaxis]
             output["bert_input"].append(bert_input)
@@ -131,4 +145,3 @@ class LogDataset(Dataset):
         output["time_label"] = torch.tensor(output["time_label"], dtype=torch.float)
 
         return output
-

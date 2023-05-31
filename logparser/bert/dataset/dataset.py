@@ -1,11 +1,20 @@
-from torch.utils.data import Dataset
-import tqdm
-import torch
 import random
-import numpy as np
+
+import torch
+from torch.utils.data import Dataset
+
 
 class BERTDataset(Dataset):
-    def __init__(self, corpus_path, vocab, seq_len, corpus_lines=None, encoding="utf-8", on_memory=True, predict_mode=False):
+    def __init__(
+        self,
+        corpus_path,
+        vocab,
+        seq_len,
+        corpus_lines=None,
+        encoding="utf-8",
+        on_memory=True,
+        predict_mode=False,
+    ):
         self.vocab = vocab
         self.seq_len = seq_len
 
@@ -19,8 +28,8 @@ class BERTDataset(Dataset):
         self.corpus_lines = len(self.lines)
 
         if not on_memory:
-            self.file = open(corpus_path, "r", encoding=encoding)
-            self.random_file = open(corpus_path, "r", encoding=encoding)
+            self.file = open(corpus_path, encoding=encoding)
+            self.random_file = open(corpus_path, encoding=encoding)
 
             for _ in range(random.randint(self.corpus_lines if self.corpus_lines < 1000 else 1000)):
                 self.random_file.__next__()
@@ -40,17 +49,19 @@ class BERTDataset(Dataset):
         t1_label = [self.vocab.pad_index] + t1_label + [self.vocab.pad_index]
         t2_label = t2_label + [self.vocab.pad_index]
 
-        segment_label = ([1 for _ in range(len(t1))] + [2 for _ in range(len(t2))])[:self.seq_len]
-        bert_input = (t1 + t2)[:self.seq_len]
-        bert_label = (t1_label + t2_label)[:self.seq_len]
+        segment_label = ([1 for _ in range(len(t1))] + [2 for _ in range(len(t2))])[: self.seq_len]
+        bert_input = (t1 + t2)[: self.seq_len]
+        bert_label = (t1_label + t2_label)[: self.seq_len]
 
         padding = [self.vocab.pad_index for _ in range(self.seq_len - len(bert_input))]
         bert_input.extend(padding), bert_label.extend(padding), segment_label.extend(padding)
 
-        output = {"bert_input": bert_input,
-                  "bert_label": bert_label,
-                  "segment_label": segment_label,
-                  "is_next": is_next_label}
+        output = {
+            "bert_input": bert_input,
+            "bert_label": bert_label,
+            "segment_label": segment_label,
+            "is_next": is_next_label,
+        }
 
         return {key: torch.tensor(value) for key, value in output.items()}
 
@@ -108,7 +119,7 @@ class BERTDataset(Dataset):
             line = self.file.__next__()
             if line is None:
                 self.file.close()
-                self.file = open(self.corpus_path, "r", encoding=self.encoding)
+                self.file = open(self.corpus_path, encoding=self.encoding)
                 line = self.file.__next__()
 
             t1, t2 = line[:-1].split("\t")
@@ -121,11 +132,8 @@ class BERTDataset(Dataset):
         line = self.file.__next__()
         if line is None:
             self.file.close()
-            self.file = open(self.corpus_path, "r", encoding=self.encoding)
+            self.file = open(self.corpus_path, encoding=self.encoding)
             for _ in range(random.randint(self.corpus_lines if self.corpus_lines < 1000 else 1000)):
                 self.random_file.__next__()
             line = self.random_file.__next__()
         return line[:-1].split("\t")[1]
-
-
-

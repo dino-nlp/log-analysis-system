@@ -6,9 +6,7 @@ import mlflow
 from rich.logging import RichHandler
 
 # Assets
-BGL_LOG_URL = (
-    "https://raw.githubusercontent.com/logpai/loghub/master/BGL/BGL_2k.log"
-)
+BGL_LOG_URL = "https://raw.githubusercontent.com/logpai/loghub/master/BGL/BGL_2k.log"
 
 # Directories
 BASE_DIR = Path(__file__).parent.parent.absolute()

@@ -1,10 +1,13 @@
 import pickle
-import tqdm
-from collections import Counter
 import sys
+from collections import Counter
+
+import tqdm
+
 sys.path.append("../")
 
-class TorchVocab(object):
+
+class TorchVocab:
     """Defines a vocabulary object that will be used to numericalize a field.
     Attributes:
         freqs: A collections.Counter object holding the frequencies of tokens
@@ -14,8 +17,16 @@ class TorchVocab(object):
         itos: A list of token strings indexed by their numerical identifiers.
     """
 
-    def __init__(self, counter, max_size=None, min_freq=1, specials=['<pad>', '<oov>'],
-                 vectors=None, unk_init=None, vectors_cache=None):
+    def __init__(
+        self,
+        counter,
+        max_size=None,
+        min_freq=1,
+        specials=["<pad>", "<oov>"],
+        vectors=None,
+        unk_init=None,
+        vectors_cache=None,
+    ):
         """Create a Vocab object from a collections.Counter.
         Arguments:
             counter: collections.Counter object holding the frequencies of
@@ -97,8 +108,12 @@ class Vocab(TorchVocab):
         self.eos_index = 2
         self.sos_index = 3
         self.mask_index = 4
-        super().__init__(counter, specials=["<pad>", "<unk>", "<eos>", "<sos>", "<mask>"],
-                         max_size=max_size, min_freq=min_freq)
+        super().__init__(
+            counter,
+            specials=["<pad>", "<unk>", "<eos>", "<sos>", "<mask>"],
+            max_size=max_size,
+            min_freq=min_freq,
+        )
 
     def to_seq(self, sentece, seq_len, with_eos=False, with_sos=False) -> list:
         pass
@@ -107,7 +122,7 @@ class Vocab(TorchVocab):
         pass
 
     @staticmethod
-    def load_vocab(vocab_path: str) -> 'Vocab':
+    def load_vocab(vocab_path: str) -> "Vocab":
         with open(vocab_path, "rb") as f:
             return pickle.load(f)
 
@@ -154,16 +169,15 @@ class WordVocab(Vocab):
         return (seq, origin_seq_len) if with_len else seq
 
     def from_seq(self, seq, join=False, with_pad=False):
-        words = [self.itos[idx]
-                 if idx < len(self.itos)
-                 else "<%d>" % idx
-                 for idx in seq
-                 if not with_pad or idx != self.pad_index]
+        words = [
+            self.itos[idx] if idx < len(self.itos) else "<%d>" % idx
+            for idx in seq
+            if not with_pad or idx != self.pad_index
+        ]
 
         return " ".join(words) if join else words
 
     @staticmethod
-    def load_vocab(vocab_path: str) -> 'WordVocab':
+    def load_vocab(vocab_path: str) -> "WordVocab":
         with open(vocab_path, "rb") as f:
             return pickle.load(f)
-

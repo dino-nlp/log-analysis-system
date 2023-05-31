@@ -1,21 +1,11 @@
-import json
-import re
-from collections import Counter
-from typing import Dict, List, Tuple
-
-import numpy as np
-import pandas as pd
-from nltk.stem import PorterStemmer
-from sklearn.model_selection import train_test_split
+import requests
+from drain3.file_persistence import FilePersistence
+from drain3.template_miner_config import TemplateMinerConfig
+from tqdm import tqdm
 
 from config import config
 from config.config import logger
 from drain3 import TemplateMiner
-from drain3.template_miner_config import TemplateMinerConfig
-from drain3.file_persistence import FilePersistence
-
-import requests
-from tqdm import tqdm
 
 
 def preprocess_line(line):
@@ -27,19 +17,21 @@ def preprocess_line(line):
     content = " ".join(line_split[6:])
     return label, timestamp, content
 
+
 def download_logs():
     lines = []
     response = requests.get(config.BGL_LOG_URL)
     if response.status_code == 200:
-        logger.success(f"Downloaded {url}")
+        logger.success("Downloaded logs")
         content = response.text
         for line in tqdm(content.splitlines()):
             lines.append(line)
     else:
-        logger.error(f"Failed to download {url}")
+        logger.error("Failed to download logs")
         logger.error(f"Status code: {response.status_code}")
         logger.error(f"Error: {response.text}")
-        
+
+
 def load_miner():
     persistence = FilePersistence(config.DRAIN3_FILE_PERSISTENCE)
     drain_config = TemplateMinerConfig()
@@ -52,16 +44,17 @@ def load_miner():
 def train_drain3(logs):
     template_miner = load_miner()
     for line in tqdm(logs):
-        _, _, content = preprocess_logs(line)
+        _, _, content = preprocess_line(line)
         template_miner.add_log_message(content)
     return template_miner
 
+
 def parser_log(miner, line):
-    label, timestamp, content = preprocess_logs(line)
+    label, timestamp, content = preprocess_line(line)
     parsed_log = miner.match(content)
     if parsed_log is None:
         logger.warning(f"Failed to parse: {content}")
-    
+
     template = parsed_log.get_template()
     id_str = str(parsed_log.cluster_id)
     return label, timestamp, id_str, template
