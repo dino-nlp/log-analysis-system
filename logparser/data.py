@@ -18,11 +18,11 @@ def preprocess_line(line):
     return label, timestamp, content
 
 
-def download_logs():
+def download_logs(url):
     lines = []
-    response = requests.get(config.BGL_LOG_URL)
+    response = requests.get(url)
     if response.status_code == 200:
-        logger.success("Downloaded logs")
+        logger.info("Downloaded logs")
         content = response.text
         for line in tqdm(content.splitlines()):
             lines.append(line)
@@ -30,6 +30,8 @@ def download_logs():
         logger.error("Failed to download logs")
         logger.error(f"Status code: {response.status_code}")
         logger.error(f"Error: {response.text}")
+
+    return lines
 
 
 def load_miner():

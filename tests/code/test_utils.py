@@ -1,15 +1,26 @@
 import tempfile
 from pathlib import Path
 
+import numpy as np
+
 from logparser import utils
 
 
 def test_save_and_load_dict():
-    """Test saving and loading a dictionary."""
-    d = {"a": 1, "b": 2, "c": 3}
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmpdir = Path(tmpdir)
-        filepath = tmpdir / "test.json"
-        utils.save_dict(d, filepath)
-        d2 = utils.load_dict(filepath)
-        assert d == d2
+    with tempfile.TemporaryDirectory() as dp:
+        d = {"hello": "world"}
+        fp = Path(dp, "d.json")
+        utils.save_dict(d=d, filepath=fp)
+        d = utils.load_dict(filepath=fp)
+        assert d["hello"] == "world"
+
+
+def test_seed_everything():
+    utils.seed_everything()
+    a = np.random.randn(2, 3)
+    b = np.random.randn(2, 3)
+    utils.seed_everything()
+    x = np.random.randn(2, 3)
+    y = np.random.randn(2, 3)
+    assert np.array_equal(a, x)
+    assert np.array_equal(b, y)
