@@ -5,9 +5,6 @@ from pathlib import Path
 import mlflow
 from rich.logging import RichHandler
 
-# Assets
-BGL_LOG_URL = "https://raw.githubusercontent.com/logpai/loghub/master/BGL/BGL_2k.log"
-BGL_LOG_FILE = "BGL_2k.log"
 
 # Directories
 BASE_DIR = Path(__file__).parent.parent.absolute()
@@ -15,6 +12,7 @@ CONFIG_DIR = Path(BASE_DIR, "config")
 DATA_DIR = Path(BASE_DIR, "data")
 STORES_DIR = Path(BASE_DIR, "stores")
 LOGS_DIR = Path(BASE_DIR, "logs")
+OUTPUT_DIR = Path(BASE_DIR, "outputs")
 
 # Stores
 MODEL_REGISTRY = Path(STORES_DIR, "model")
@@ -25,6 +23,14 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_REGISTRY.mkdir(parents=True, exist_ok=True)
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 BLOB_STORE.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Data files
+RAW_DATA_FILE_NAME = "BGL_300k.log"
+TRAIN_NORMAL_DIR = Path(DATA_DIR, "train_normal")
+TEST_NORMAL_DIR = Path(DATA_DIR, "test_normal")
+TEST_ABNORMAL_DIR = Path(DATA_DIR, "test_abnormal")
+VOCAB_DIR = Path(DATA_DIR, "vocab.pkl")
 
 # MLFlow model registry
 mlflow.set_tracking_uri("file://" + str(MODEL_REGISTRY.absolute()))

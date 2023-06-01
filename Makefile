@@ -39,3 +39,8 @@ clean: style
 .PHONY: test
 test:
 	pytest -m "not training"
+
+# Parser data
+.PHONY: log_parser
+log_parser:
+	python logparser/data.py --window-size=5 --step-size=1 --train-ratio=0.4

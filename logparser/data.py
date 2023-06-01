@@ -48,20 +48,16 @@ def parse_log(input_dir, output_dir, log_file):
 
 
 @app.command()
-def process_data(parser_cfg: str = "config/parser_data.json"):
-    args = Namespace(**utils.load_dict(filepath=parser_cfg))
-    logger.info(f"args: {args}")
+def process_data(window_size: int = 5, step_size: int = 1, train_ratio: float = 0.4):
+    
+    input_dir = config.DATA_DIR
+    output_dir = config.DATA_DIR
+    log_file = config.RAW_DATA_FILE_NAME
+    
     ##########
     # Parser #
     #########
-    data_dir = config.DATA_DIR
-    output_dir = Path(data_dir, args.output_dir)
-    log_file = args.log_file
-    window_size = args.window_size
-    step_size = args.step_size
-    train_ratio = args.train_ratio
-
-    parse_log(data_dir, output_dir, log_file)
+    parse_log(input_dir, output_dir, log_file)
 
     ##################
     # Transformation #
@@ -92,7 +88,7 @@ def process_data(parser_cfg: str = "config/parser_data.json"):
 
     train = df_normal[:train_len]
     # deeplog_file_generator(os.path.join(output_dir,'train'), train, ["EventId", "deltaT"])
-    deeplog_file_generator(os.path.join(output_dir, "train"), train, ["EventId"])
+    deeplog_file_generator(config.TRAIN_NORMAL_DIR, train, ["EventId"])
 
     logger.info(f"training size {train_len}")
 
@@ -100,7 +96,7 @@ def process_data(parser_cfg: str = "config/parser_data.json"):
     # Test Normal #
     ###############
     test_normal = df_normal[train_len:]
-    deeplog_file_generator(os.path.join(output_dir, "test_normal"), test_normal, ["EventId"])
+    deeplog_file_generator(config.TEST_ABNORMAL_DIR, test_normal, ["EventId"])
     logger.info(f"test normal size {normal_len - train_len}")
 
     del df_normal
@@ -113,7 +109,7 @@ def process_data(parser_cfg: str = "config/parser_data.json"):
     #################
     df_abnormal = deeplog_df[deeplog_df["Label"] == 1]
     # df_abnormal["EventId"] = df_abnormal["EventId"].progress_apply(lambda e: event_index_map[e] if event_index_map.get(e) else UNK)
-    deeplog_file_generator(os.path.join(output_dir, "test_abnormal"), df_abnormal, ["EventId"])
+    deeplog_file_generator(config.TEST_ABNORMAL_DIR, df_abnormal, ["EventId"])
     logger.info(f"test abnormal size {len(df_abnormal)}")
 
 

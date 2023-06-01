@@ -9,62 +9,66 @@ import seaborn as sns
 import torch
 import tqdm
 from torch.utils.data import DataLoader
-
+from numpyencoder import NumpyEncoder
 from logparser.bert.dataset import LogDataset, WordVocab
 from logparser.bert.dataset.sample import generate_train_valid
-from logparser.bert.dataset.utils import save_parameters
 from logparser.bert.model import BERT
 from logparser.bert.trainer import BERTTrainer
+from config.config import logger
+from config import config
+from logparser.utils import load_dict, save_dict, seed_everything
 
 
 class Trainer:
-    def __init__(self, options):
-        self.device = options["device"]
-        self.model_dir = options["model_dir"]
-        self.model_path = options["model_path"]
-        self.vocab_path = options["vocab_path"]
-        self.output_path = options["output_dir"]
-        self.window_size = options["window_size"]
-        self.adaptive_window = options["adaptive_window"]
-        self.sample_ratio = options["train_ratio"]
-        self.valid_ratio = options["valid_ratio"]
-        self.seq_len = options["seq_len"]
-        self.max_len = options["max_len"]
-        self.corpus_lines = options["corpus_lines"]
-        self.on_memory = options["on_memory"]
-        self.batch_size = options["batch_size"]
-        self.num_workers = options["num_workers"]
-        self.lr = options["lr"]
-        self.adam_beta1 = options["adam_beta1"]
-        self.adam_beta2 = options["adam_beta2"]
-        self.adam_weight_decay = options["adam_weight_decay"]
-        self.with_cuda = options["with_cuda"]
-        self.cuda_devices = options["cuda_devices"]
-        self.log_freq = options["log_freq"]
-        self.epochs = options["epochs"]
-        self.hidden = options["hidden"]
-        self.layers = options["layers"]
-        self.attn_heads = options["attn_heads"]
-        self.is_logkey = options["is_logkey"]
-        self.is_time = options["is_time"]
-        self.scale = options["scale"]
-        self.scale_path = options["scale_path"]
-        self.n_epochs_stop = options["n_epochs_stop"]
-        self.hypersphere_loss = options["hypersphere_loss"]
-        self.mask_ratio = options["mask_ratio"]
-        self.min_len = options["min_len"]
+    def __init__(self, args: Namespace):
+        self.device = args.device
+        self.output_dir = config.OUTPUT_DIR
+        self.model_dir = Path(self.output_dir, args.experiment_name)
+        self.model_path = Path(self.model_dir, "best_bert.pth")
+        self.output_path = self.output_dir
+        self.vocab_path = config.VOCAB_DIR
+        self.window_size = args.window_size
+        self.adaptive_window = args.adaptive_window
+        self.sample_ratio = args.train_ratio
+        self.valid_ratio = args.valid_ratio
+        self.seq_len = args.seq_len
+        self.max_len = args.max_len
+        self.corpus_lines = args.corpus_lines
+        self.on_memory = args.on_memory
+        self.batch_size = args.batch_size
+        self.num_workers = args.num_workers
+        self.lr = args.lr
+        self.adam_beta1 = args.adam_beta1
+        self.adam_beta2 = args.adam_beta2
+        self.adam_weight_decay = args.adam_weight_decay
+        self.with_cuda = args.with_cuda
+        self.cuda_devices = args.cuda_devices
+        self.log_freq = args.log_freq
+        self.epochs = args.epochs
+        self.hidden = args.hidden
+        self.layers = args.layers
+        self.attn_heads = args.attn_heads
+        self.is_logkey = args.is_logkey
+        self.is_time = args.is_time
+        self.scale = args.scale
+        self.scale_path = args.scale_path
+        self.n_epochs_stop = args.n_epochs_stop
+        self.hypersphere_loss = args.hypersphere_loss
+        self.mask_ratio = args.mask_ratio
+        self.min_len = args.min_len
 
-        os.makedirs(self.model_dir, exist_ok=True)
+        self.model_dir.mkdir(parents=True, exist_ok=True)
 
-        print("Save options parameters")
-        save_parameters(options, Path(self.model_dir, "parameters.txt"))
+        logger.info("Save options parameters")
+        # save_parameters(options, Path(self.model_dir, "parameters.txt"))
+        utils.save_dict(vars(args), Path(self.model_dir, "args.json"), cls=NumpyEncoder)
 
     def train(self):
-        print("Loading vocab", self.vocab_path)
+        logger.info(f"Loading vocab: {self.vocab_path}")
         vocab = WordVocab.load_vocab(self.vocab_path)
-        print("vocab Size: ", len(vocab))
+        logger.info(f"vocab Size: {len(vocab)}")
 
-        print("\nLoading Train Dataset")
+        logger.info("\nLoading Train Dataset")
         logkey_train, logkey_valid, time_train, time_valid = generate_train_valid(
             Path(self.output_path, "train"),
             window_size=self.window_size,
@@ -87,7 +91,7 @@ class Trainer:
             mask_ratio=self.mask_ratio,
         )
 
-        print("\nLoading valid Dataset")
+        logger.info("\nLoading valid Dataset")
         # valid_dataset = generate_train_valid(self.output_path + "train", window_size=self.window_size,
         #                              adaptive_window=self.adaptive_window,
         #                              sample_ratio=self.valid_ratio)
@@ -101,7 +105,7 @@ class Trainer:
             mask_ratio=self.mask_ratio,
         )
 
-        print("Creating Dataloader")
+        logger.info("Creating Dataloader")
         self.train_data_loader = DataLoader(
             train_dataset,
             batch_size=self.batch_size,
@@ -124,7 +128,7 @@ class Trainer:
         del time_valid
         gc.collect()
 
-        print("Building BERT model")
+        logger.info("Building BERT model")
         bert = BERT(
             len(vocab),
             max_len=self.max_len,
@@ -135,7 +139,7 @@ class Trainer:
             is_time=self.is_time,
         )
 
-        print("Creating BERT Trainer")
+        logger.info("Creating BERT Trainer")
         self.trainer = BERTTrainer(
             bert,
             len(vocab),
@@ -155,7 +159,7 @@ class Trainer:
         self.start_iteration(surfix_log="log2")
 
     def start_iteration(self, surfix_log):
-        print("Training Start")
+        logger.info("Training Start")
         best_loss = float("inf")
         epochs_no_improve = 0
         # best_center = None
@@ -191,23 +195,22 @@ class Trainer:
                     if best_center is None:
                         raise TypeError("center is None")
 
-                    print("best radius", best_radius)
-                    best_center_path = self.model_dir + "best_center.pt"
-                    print("Save best center", best_center_path)
+                    logger.info(f"best radius: {best_radius}")
+                    best_center_path = Path(self.model_dir, "best_center.pt") 
+                    logger.info(f"Save best center: {best_center_path}")
                     torch.save({"center": best_center, "radius": best_radius}, best_center_path)
 
                     total_dist_path = self.model_dir + "best_total_dist.pt"
-                    print("save total dist: ", total_dist_path)
+                    logger.info(f"save total dist: {total_dist_path}")
                     torch.save(total_dist, total_dist_path)
             else:
                 epochs_no_improve += 1
 
             if epochs_no_improve == self.n_epochs_stop:
-                print("Early stopping")
+                logger.info("Early stopping")
                 break
 
     def calculate_center(self, data_loader_list):
-        print("start calculate center")
         # model = torch.load(self.model_path)
         # model.to(self.device)
         with torch.no_grad():

@@ -1,14 +1,13 @@
-import argparse
-from pathlib import Path
-
 import torch
+import mlflow
+from argparse import Namespace
+from pathlib import Path
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-
 from config import config
 from config.config import logger
 from logparser.bert import Predictor, Trainer
 from logparser.bert.dataset import WordVocab
-from logparser.utils import seed_everything
+from logparser.utils import seed_everything, load_dict, save_dict
 
 options = dict()
 options["device"] = "cuda" if torch.cuda.is_available() else "cpu"
@@ -71,32 +70,36 @@ options["gaussian_mean"] = 0
 options["gaussian_std"] = 1
 
 seed_everything(seed=1234)
-print("device", options["device"])
-print("features logkey:{} time: {}".format(options["is_logkey"], options["is_time"]))
-print("mask ratio", options["mask_ratio"])
+
+def create_vocab():
+    train_normal_dir = config.TRAIN_NORMAL_DIR
+    vocab_dir = config.VOCAB_DIR
+    with open(train_normal_dir) as f:
+        logs = f.readlines()
+    vocab = WordVocab(logs)
+    logger.info(f"vocab_size: {len(vocab)}")
+    vocab.save_vocab(vocab_dir)
+
+def train_model(
+    args_fp: str = "config/args.json",
+    run_name: str = "window_size_?_test_size_?",
+):
+    args = Namespace(**utils.load_dict(filepath=args_fp))
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    args.device = device
+    mlflow.set_experiment(experiment_name=args.experiment_name)
+    with mlflow.start_run(run_name=run_name):
+        Trainer(args).train()
+        # TODO: log artifacts
+        
 
 if __name__ == "__main__":
+    
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
-
-    train_parser = subparsers.add_parser("train")
-    train_parser.set_defaults(mode="train")
-
-    predict_parser = subparsers.add_parser("predict")
-    predict_parser.set_defaults(mode="predict")
-    predict_parser.add_argument("-m", "--mean", type=float, default=0)
-    predict_parser.add_argument("-s", "--std", type=float, default=1)
-
-    vocab_parser = subparsers.add_parser("vocab")
-    vocab_parser.set_defaults(mode="vocab")
-    vocab_parser.add_argument("-s", "--vocab_size", type=int, default=None)
-    vocab_parser.add_argument("-e", "--encoding", type=str, default="utf-8")
-    vocab_parser.add_argument("-m", "--min_freq", type=int, default=1)
-
+    
     args = parser.parse_args()
-    print("arguments", args)
-    # Trainer(options).train()
-    # Predictor(options).predict()
+    logger.info(f"arguments: {args}")
 
     if args.mode == "train":
         Trainer(options).train()
