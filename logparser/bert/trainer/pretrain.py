@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -211,7 +212,8 @@ class BERTTrainer:
     def save_log(self, save_dir, surfix_log):
         try:
             for key, values in self.log.items():
-                pd.DataFrame(values).to_csv(save_dir + key + f"_{surfix_log}.csv", index=False)
+                logdir = Path(save_dir, key + f"_{surfix_log}.csv")
+                pd.DataFrame(values).to_csv(logdir, index=False)
             print("Log saved")
         except Exception as e:
             print(f"Failed to save logs: {e}")

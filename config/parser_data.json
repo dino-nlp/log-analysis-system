@@ -1,0 +1,7 @@
+{
+    "window_size": 5,
+    "step_size": 1,
+    "train_ratio": 0.4,
+    "output_dir": "bgl",
+    "log_file": "BGL_300k_1.log"
+}

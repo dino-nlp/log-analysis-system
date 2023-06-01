@@ -3,10 +3,11 @@ import time
 
 import numpy as np
 import torch
-from bert_pytorch.dataset import LogDataset, WordVocab
-from bert_pytorch.dataset.sample import fixed_window
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+from logparser.bert.dataset import LogDataset, WordVocab
+from logparser.bert.dataset.sample import fixed_window
 
 
 def compute_anomaly(results, params, seq_threshold=0.5):

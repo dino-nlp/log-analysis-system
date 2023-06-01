@@ -1,3 +1,4 @@
 {
-    "model": "bert"
+    "experiment_name": "bert",
+    "device" : "cpu"
 }

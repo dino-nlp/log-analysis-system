@@ -65,7 +65,7 @@ def generate_train_valid(
     scale=None,
     scale_path=None,
     seq_len=None,
-    min_len=0,
+    min_len=10,
 ):
     with open(data_path) as f:
         data_iter = f.readlines()
@@ -96,8 +96,9 @@ def generate_train_valid(
         logkey_seq_pairs += logkeys
         time_seq_pairs += times
 
-    logkey_seq_pairs = np.array(logkey_seq_pairs)
-    time_seq_pairs = np.array(time_seq_pairs)
+    # print("TTTT: logkey_seq_pairs ", logkey_seq_pairs)
+    logkey_seq_pairs = np.array(logkey_seq_pairs, dtype=object)
+    time_seq_pairs = np.array(time_seq_pairs, dtype=object)
 
     logkey_trainset, logkey_validset, time_trainset, time_validset = train_test_split(
         logkey_seq_pairs, time_seq_pairs, test_size=test_size, random_state=1234

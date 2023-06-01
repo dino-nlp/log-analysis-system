@@ -1,9 +1,10 @@
 import argparse
 
-from bert_pytorch.dataset import BERTDataset, WordVocab
-from bert_pytorch.model import BERT
-from bert_pytorch.trainer import BERTTrainer
 from torch.utils.data import DataLoader
+
+from logparser.bert.dataset import BERTDataset, WordVocab
+from logparser.bert.model import BERT
+from logparser.bert.trainer import BERTTrainer
 
 
 def train():

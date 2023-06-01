@@ -1,62 +1,121 @@
-import requests
-from drain3.file_persistence import FilePersistence
-from drain3.template_miner_config import TemplateMinerConfig
+import gc
+import os
+from argparse import Namespace
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import typer
 from tqdm import tqdm
 
 from config import config
 from config.config import logger
-from drain3 import TemplateMiner
+from logparser import drain, utils
+from logparser.session import sliding_window
+
+app = typer.Typer()
+
+tqdm.pandas()
+pd.options.mode.chained_assignment = None
 
 
-def preprocess_line(line):
-    # hard code for BGL log, improve later
-    line = line.rstrip()
-    line_split = line.split(" ")
-    label = line_split[0]
-    timestamp = line_split[4]
-    content = " ".join(line_split[6:])
-    return label, timestamp, content
+def deeplog_file_generator(filename, df, features):
+    with open(filename, "w") as f:
+        for _, row in df.iterrows():
+            for val in zip(*row[features]):
+                f.write(",".join([str(v) for v in val]) + " ")
+            f.write("\n")
 
 
-def download_logs(url):
-    lines = []
-    response = requests.get(url)
-    if response.status_code == 200:
-        logger.info("Downloaded logs")
-        content = response.text
-        for line in tqdm(content.splitlines()):
-            lines.append(line)
-    else:
-        logger.error("Failed to download logs")
-        logger.error(f"Status code: {response.status_code}")
-        logger.error(f"Error: {response.text}")
-
-    return lines
-
-
-def load_miner():
-    persistence = FilePersistence(config.DRAIN3_FILE_PERSISTENCE)
-    drain_config = TemplateMinerConfig()
-    drain_config.load(config.DRAIN3_CONFIG)
-    drain_config.profiling_enabled = True
-    template_miner = TemplateMiner(persistence, drain_config)
-    return template_miner
+def parse_log(input_dir, output_dir, log_file):
+    log_format = (
+        "<Label> <Id> <Date> <Code1> <Time> <Code2> <Component1> <Component2> <Level> <Content>"
+    )
+    regex = [r"(0x)[0-9a-fA-F]+", r"\d+.\d+.\d+.\d+", r"\d+"]  # hexadecimal
+    keep_para = False
+    st = 0.3  # Similarity threshold
+    depth = 3  # Depth of all leaf nodes
+    parser = drain.LogParser(
+        log_format,
+        indir=input_dir,
+        outdir=output_dir,
+        depth=depth,
+        st=st,
+        rex=regex,
+        keep_para=keep_para,
+    )
+    parser.parse(log_file)
 
 
-def train_drain3(logs):
-    template_miner = load_miner()
-    for line in tqdm(logs):
-        _, _, content = preprocess_line(line)
-        template_miner.add_log_message(content)
-    return template_miner
+@app.command()
+def process_data(parser_cfg: str = "config/parser_data.json"):
+    args = Namespace(**utils.load_dict(filepath=parser_cfg))
+    logger.info(f"args: {args}")
+    ##########
+    # Parser #
+    #########
+    data_dir = config.DATA_DIR
+    output_dir = Path(data_dir, args.output_dir)
+    log_file = args.log_file
+    window_size = args.window_size
+    step_size = args.step_size
+    train_ratio = args.train_ratio
+
+    parse_log(data_dir, output_dir, log_file)
+
+    ##################
+    # Transformation #
+    ##################
+    # mins
+    df = pd.read_csv(f"{output_dir}/{log_file}_structured.csv")
+
+    # data preprocess
+    df["datetime"] = pd.to_datetime(df["Time"], format="%Y-%m-%d-%H.%M.%S.%f")
+    df["Label"] = df["Label"].apply(lambda x: int(x != "-"))
+    df["timestamp"] = df["datetime"].values.astype(np.int64) // 10**9
+    df["deltaT"] = df["datetime"].diff() / np.timedelta64(1, "s")
+    df["deltaT"].fillna(0)
+
+    # sampling with sliding window
+    deeplog_df = sliding_window(
+        df[["timestamp", "Label", "EventId", "deltaT"]],
+        para={"window_size": int(window_size) * 60, "step_size": int(step_size) * 60},
+    )
+
+    #########
+    # Train #
+    #########
+    df_normal = deeplog_df[deeplog_df["Label"] == 0]
+    df_normal = df_normal.sample(frac=1, random_state=12).reset_index(drop=True)  # shuffle
+    normal_len = len(df_normal)
+    train_len = int(normal_len * train_ratio)
+
+    train = df_normal[:train_len]
+    # deeplog_file_generator(os.path.join(output_dir,'train'), train, ["EventId", "deltaT"])
+    deeplog_file_generator(os.path.join(output_dir, "train"), train, ["EventId"])
+
+    logger.info(f"training size {train_len}")
+
+    ###############
+    # Test Normal #
+    ###############
+    test_normal = df_normal[train_len:]
+    deeplog_file_generator(os.path.join(output_dir, "test_normal"), test_normal, ["EventId"])
+    logger.info(f"test normal size {normal_len - train_len}")
+
+    del df_normal
+    del train
+    del test_normal
+    gc.collect()
+
+    #################
+    # Test Abnormal #
+    #################
+    df_abnormal = deeplog_df[deeplog_df["Label"] == 1]
+    # df_abnormal["EventId"] = df_abnormal["EventId"].progress_apply(lambda e: event_index_map[e] if event_index_map.get(e) else UNK)
+    deeplog_file_generator(os.path.join(output_dir, "test_abnormal"), df_abnormal, ["EventId"])
+    logger.info(f"test abnormal size {len(df_abnormal)}")
 
 
-def parser_log(miner, line):
-    label, timestamp, content = preprocess_line(line)
-    parsed_log = miner.match(content)
-    if parsed_log is None:
-        logger.warning(f"Failed to parse: {content}")
-
-    template = parsed_log.get_template()
-    id_str = str(parsed_log.cluster_id)
-    return label, timestamp, id_str, template
+if __name__ == "__main__":
+    app()

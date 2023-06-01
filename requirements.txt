@@ -13,7 +13,6 @@ torchmetrics
 
 # data / data source
 dvc==2.58.1
-drain3==0.9.11
 
 # application
 fastapi==0.95.2
@@ -21,6 +20,9 @@ streamlit==1.22.0
 
 # tracking
 mlflow==2.3.2
+
+# visualization
+seaborn==0.12.2
 
 # other
 typing-extensions==4.5.0

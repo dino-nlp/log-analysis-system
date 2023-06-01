@@ -1,17 +1,19 @@
 import gc
 import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import torch
 import tqdm
-from bert_pytorch.dataset import LogDataset, WordVocab
-from bert_pytorch.dataset.sample import generate_train_valid
-from bert_pytorch.dataset.utils import save_parameters
-from bert_pytorch.model import BERT
-from bert_pytorch.trainer import BERTTrainer
 from torch.utils.data import DataLoader
+
+from logparser.bert.dataset import LogDataset, WordVocab
+from logparser.bert.dataset.sample import generate_train_valid
+from logparser.bert.dataset.utils import save_parameters
+from logparser.bert.model import BERT
+from logparser.bert.trainer import BERTTrainer
 
 
 class Trainer:
@@ -54,7 +56,7 @@ class Trainer:
         os.makedirs(self.model_dir, exist_ok=True)
 
         print("Save options parameters")
-        save_parameters(options, self.model_dir + "parameters.txt")
+        save_parameters(options, Path(self.model_dir, "parameters.txt"))
 
     def train(self):
         print("Loading vocab", self.vocab_path)
@@ -63,7 +65,7 @@ class Trainer:
 
         print("\nLoading Train Dataset")
         logkey_train, logkey_valid, time_train, time_valid = generate_train_valid(
-            self.output_path + "train",
+            Path(self.output_path, "train"),
             window_size=self.window_size,
             adaptive_window=self.adaptive_window,
             valid_size=self.valid_ratio,
