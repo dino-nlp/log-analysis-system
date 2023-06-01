@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import mlflow
 import pandas as pd
 import seaborn as sns
 import torch
@@ -152,8 +153,6 @@ class Trainer:
         )
 
         self.start_iteration(surfix_log="log2")
-
-        self.plot_train_valid_loss("_log2")
 
     def start_iteration(self, surfix_log):
         print("Training Start")

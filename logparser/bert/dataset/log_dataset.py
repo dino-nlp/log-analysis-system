@@ -139,9 +139,12 @@ class LogDataset(Dataset):
             output["time_input"].append(time_input)
             output["time_label"].append(time_label)
 
+        time_input_array = np.array(output["time_input"])
         output["bert_input"] = torch.tensor(output["bert_input"], dtype=torch.long)
         output["bert_label"] = torch.tensor(output["bert_label"], dtype=torch.long)
-        output["time_input"] = torch.tensor(output["time_input"], dtype=torch.float)
+        output["time_input"] = torch.from_numpy(
+            time_input_array
+        )  # torch.tensor(output["time_input"], dtype=torch.float)
         output["time_label"] = torch.tensor(output["time_label"], dtype=torch.float)
 
         return output
