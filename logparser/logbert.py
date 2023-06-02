@@ -94,12 +94,17 @@ def train_model(
     run_name: str = "window_size_?_test_size_?",
 ):
     args = Namespace(**load_dict(filepath=args_fp))
+    model_dir = Path(config.OUTPUT_DIR, args.experiment_name)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     args.device = device
+    args.scale_path = Path(model_dir, "scale.pkl")
     mlflow.set_experiment(experiment_name=args.experiment_name)
     with mlflow.start_run(run_name=run_name):
+        run_id = mlflow.active_run().info.run_id
+        logger.info(f"run_id: {run_id}")
         Trainer(args).train()
-        # TODO: log artifacts
+        mlflow.log_params(vars(args))
+        mlflow.log_artifacts(model_dir)
 
 
 if __name__ == "__main__":

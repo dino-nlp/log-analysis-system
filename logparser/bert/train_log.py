@@ -24,11 +24,16 @@ from logparser.utils import load_dict, save_dict, seed_everything
 class Trainer:
     def __init__(self, args: Namespace):
         self.device = args.device
+
+        # Setup directories
         self.output_dir = config.OUTPUT_DIR
         self.model_dir = Path(self.output_dir, args.experiment_name)
+        self.model_dir.mkdir(parents=True, exist_ok=True)
         self.model_path = Path(self.model_dir, "best_bert.pth")
         self.output_path = self.output_dir
         self.vocab_path = config.VOCAB_DIR
+
+        # Args
         self.window_size = args.window_size
         self.adaptive_window = args.adaptive_window
         self.sample_ratio = args.train_ratio
@@ -59,11 +64,9 @@ class Trainer:
         self.mask_ratio = args.mask_ratio
         self.min_len = args.min_len
 
-        self.model_dir.mkdir(parents=True, exist_ok=True)
-
-        logger.info("Save options parameters")
+        # logger.info("Save opti ons parameters")
         # save_parameters(options, Path(self.model_dir, "parameters.txt"))
-        save_dict(vars(args), Path(self.model_dir, "args.json"), cls=NumpyEncoder)
+        # save_dict(vars(args), Path(self.model_dir, "args.json"), cls=NumpyEncoder)
 
     def train(self):
         logger.info(f"Loading vocab: {self.vocab_path}")
@@ -72,7 +75,7 @@ class Trainer:
 
         logger.info("\nLoading Train Dataset")
         logkey_train, logkey_valid, time_train, time_valid = generate_train_valid(
-            Path(self.output_path, "train"),
+            config.TRAIN_NORMAL_DIR,
             window_size=self.window_size,
             adaptive_window=self.adaptive_window,
             valid_size=self.valid_ratio,
@@ -174,9 +177,10 @@ class Trainer:
                 # center = self.calculate_center([self.train_data_loader])
                 self.trainer.hyper_center = center
 
-            _, train_dist = self.trainer.train(epoch)
+            avg_train_loss, train_dist = self.trainer.train(epoch)
             avg_loss, valid_dist = self.trainer.valid(epoch)
-            self.trainer.save_log(self.model_dir, surfix_log)
+            mlflow.log_metrics({"train_loss": avg_train_loss, "val_loss": avg_loss}, step=epoch)
+            # mlflow.log_metrics({"train_dist": train_dist, "valid_dist": valid_dist}, step=epoch)
 
             if self.hypersphere_loss:
                 self.trainer.radius = self.trainer.get_radius(
@@ -202,7 +206,9 @@ class Trainer:
                     logger.info(f"Save best center: {best_center_path}")
                     torch.save({"center": best_center, "radius": best_radius}, best_center_path)
 
-                    total_dist_path = self.model_dir + "best_total_dist.pt"
+                    total_dist_path = Path(
+                        self.model_dir, "best_total_dist.pt"
+                    )  # self.model_dir + "best_total_dist.pt"
                     logger.info(f"save total dist: {total_dist_path}")
                     torch.save(total_dist, total_dist_path)
             else:
