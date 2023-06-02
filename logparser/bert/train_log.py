@@ -1,5 +1,6 @@
 import gc
 import os
+from argparse import Namespace
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -8,14 +9,15 @@ import pandas as pd
 import seaborn as sns
 import torch
 import tqdm
-from torch.utils.data import DataLoader
 from numpyencoder import NumpyEncoder
+from torch.utils.data import DataLoader
+
+from config import config
+from config.config import logger
 from logparser.bert.dataset import LogDataset, WordVocab
 from logparser.bert.dataset.sample import generate_train_valid
 from logparser.bert.model import BERT
 from logparser.bert.trainer import BERTTrainer
-from config.config import logger
-from config import config
 from logparser.utils import load_dict, save_dict, seed_everything
 
 
@@ -61,7 +63,7 @@ class Trainer:
 
         logger.info("Save options parameters")
         # save_parameters(options, Path(self.model_dir, "parameters.txt"))
-        utils.save_dict(vars(args), Path(self.model_dir, "args.json"), cls=NumpyEncoder)
+        save_dict(vars(args), Path(self.model_dir, "args.json"), cls=NumpyEncoder)
 
     def train(self):
         logger.info(f"Loading vocab: {self.vocab_path}")
@@ -196,7 +198,7 @@ class Trainer:
                         raise TypeError("center is None")
 
                     logger.info(f"best radius: {best_radius}")
-                    best_center_path = Path(self.model_dir, "best_center.pt") 
+                    best_center_path = Path(self.model_dir, "best_center.pt")
                     logger.info(f"Save best center: {best_center_path}")
                     torch.save({"center": best_center, "radius": best_radius}, best_center_path)
 

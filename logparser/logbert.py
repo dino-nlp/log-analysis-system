@@ -1,13 +1,18 @@
-import torch
-import mlflow
 from argparse import Namespace
 from pathlib import Path
+
+import mlflow
+import torch
+import typer
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
 from config import config
 from config.config import logger
 from logparser.bert import Predictor, Trainer
 from logparser.bert.dataset import WordVocab
-from logparser.utils import seed_everything, load_dict, save_dict
+from logparser.utils import load_dict, save_dict, seed_everything
+
+app = typer.Typer()
 
 options = dict()
 options["device"] = "cuda" if torch.cuda.is_available() else "cpu"
@@ -71,6 +76,8 @@ options["gaussian_std"] = 1
 
 seed_everything(seed=1234)
 
+
+@app.command()
 def create_vocab():
     train_normal_dir = config.TRAIN_NORMAL_DIR
     vocab_dir = config.VOCAB_DIR
@@ -80,36 +87,36 @@ def create_vocab():
     logger.info(f"vocab_size: {len(vocab)}")
     vocab.save_vocab(vocab_dir)
 
+
+@app.command()
 def train_model(
     args_fp: str = "config/args.json",
     run_name: str = "window_size_?_test_size_?",
 ):
-    args = Namespace(**utils.load_dict(filepath=args_fp))
+    args = Namespace(**load_dict(filepath=args_fp))
     device = "cuda" if torch.cuda.is_available() else "cpu"
     args.device = device
     mlflow.set_experiment(experiment_name=args.experiment_name)
     with mlflow.start_run(run_name=run_name):
         Trainer(args).train()
         # TODO: log artifacts
-        
+
 
 if __name__ == "__main__":
-    
-    parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers()
-    
-    args = parser.parse_args()
-    logger.info(f"arguments: {args}")
+    app()
 
-    if args.mode == "train":
-        Trainer(options).train()
+    # args = parser.parse_args()
+    # logger.info(f"arguments: {args}")
 
-    elif args.mode == "predict":
-        Predictor(options).predict()
+    # if args.mode == "train":
+    #     Trainer(options).train()
 
-    elif args.mode == "vocab":
-        with open(options["train_vocab"]) as f:
-            logs = f.readlines()
-        vocab = WordVocab(logs)
-        print("vocab_size", len(vocab))
-        vocab.save_vocab(options["vocab_path"])
+    # elif args.mode == "predict":
+    #     Predictor(options).predict()
+
+    # elif args.mode == "vocab":
+    #     with open(options["train_vocab"]) as f:
+    #         logs = f.readlines()
+    #     vocab = WordVocab(logs)
+    #     print("vocab_size", len(vocab))
+    #     vocab.save_vocab(options["vocab_path"])

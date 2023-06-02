@@ -49,11 +49,10 @@ def parse_log(input_dir, output_dir, log_file):
 
 @app.command()
 def process_data(window_size: int = 5, step_size: int = 1, train_ratio: float = 0.4):
-    
     input_dir = config.DATA_DIR
     output_dir = config.DATA_DIR
     log_file = config.RAW_DATA_FILE_NAME
-    
+
     ##########
     # Parser #
     #########
@@ -96,7 +95,7 @@ def process_data(window_size: int = 5, step_size: int = 1, train_ratio: float = 
     # Test Normal #
     ###############
     test_normal = df_normal[train_len:]
-    deeplog_file_generator(config.TEST_ABNORMAL_DIR, test_normal, ["EventId"])
+    deeplog_file_generator(config.TEST_NORMAL_DIR, test_normal, ["EventId"])
     logger.info(f"test normal size {normal_len - train_len}")
 
     del df_normal
