@@ -18,7 +18,7 @@
     "hidden": 256,
     "layers": 4,
     "attn_heads": 4,
-    "epochs": 10,
+    "epochs": 100,
     "n_epochs_stop": 10,
     "batch_size": 32,
     "corpus_lines": null,

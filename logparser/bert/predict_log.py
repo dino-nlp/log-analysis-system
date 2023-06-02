@@ -1,11 +1,16 @@
 import pickle
 import time
+from argparse import Namespace
+from pathlib import Path
 
+import mlflow
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from config import config
+from config.config import logger
 from logparser.bert.dataset import LogDataset, WordVocab
 from logparser.bert.dataset.sample import fixed_window
 
@@ -46,38 +51,43 @@ def find_best_threshold(test_normal_results, test_abnormal_results, params, th_r
 
 
 class Predictor:
-    def __init__(self, options):
-        self.model_path = options["model_path"]
-        self.vocab_path = options["vocab_path"]
-        self.device = options["device"]
-        self.window_size = options["window_size"]
-        self.adaptive_window = options["adaptive_window"]
-        self.seq_len = options["seq_len"]
-        self.corpus_lines = options["corpus_lines"]
-        self.on_memory = options["on_memory"]
-        self.batch_size = options["batch_size"]
-        self.num_workers = options["num_workers"]
-        self.num_candidates = options["num_candidates"]
-        self.output_dir = options["output_dir"]
-        self.model_dir = options["model_dir"]
-        self.gaussian_mean = options["gaussian_mean"]
-        self.gaussian_std = options["gaussian_std"]
+    def __init__(self, args: Namespace):
+        self.output_dir = config.OUTPUT_DIR
+        # self.model_dir = Path(self.output_dir, args.experiment_name)
+        run_id = open(Path(config.CONFIG_DIR, "run_id.txt")).read()
+        experiment_id = mlflow.get_run(run_id=run_id).info.experiment_id
+        self.model_dir = Path(config.MODEL_REGISTRY, experiment_id, run_id, "artifacts")
 
-        self.is_logkey = options["is_logkey"]
-        self.is_time = options["is_time"]
-        self.scale_path = options["scale_path"]
+        self.model_path = Path(self.model_dir, "best_bert.pth")
+        self.vocab_path = config.VOCAB_DIR
 
-        self.hypersphere_loss = options["hypersphere_loss"]
-        self.hypersphere_loss_test = options["hypersphere_loss_test"]
+        self.device = args.device
+        self.window_size = args.window_size
+        self.adaptive_window = args.adaptive_window
+        self.seq_len = args.seq_len
+        self.corpus_lines = args.corpus_lines
+        self.on_memory = args.on_memory
+        self.batch_size = args.batch_size
+        self.num_workers = args.num_workers
+        self.num_candidates = args.num_candidates
+        self.gaussian_mean = args.gaussian_mean
+        self.gaussian_std = args.gaussian_std
+
+        self.is_logkey = args.is_logkey
+        self.is_time = args.is_time
+        self.scale_path = args.scale_path
+
+        self.hypersphere_loss = args.hypersphere_loss
+        self.hypersphere_loss_test = args.hypersphere_loss_test
 
         self.lower_bound = self.gaussian_mean - 3 * self.gaussian_std
         self.upper_bound = self.gaussian_mean + 3 * self.gaussian_std
 
         self.center = None
         self.radius = None
-        self.test_ratio = options["test_ratio"]
-        self.mask_ratio = options["mask_ratio"]
-        self.min_len = options["min_len"]
+        self.test_ratio = args.test_ratio
+        self.mask_ratio = args.mask_ratio
+        self.min_len = args.min_len
 
     def detect_logkey_anomaly(self, masked_output, masked_label):
         num_undetected_tokens = 0
@@ -268,11 +278,11 @@ class Predictor:
             with open(self.scale_path, "rb") as f:
                 scale = pickle.load(f)
 
-            with open(self.model_dir + "error_dict.pkl", "rb") as f:
+            with open(Path(self.model_dir, "error_dict.pkl"), "rb") as f:
                 error_dict = pickle.load(f)
 
         if self.hypersphere_loss:
-            center_dict = torch.load(self.model_dir + "best_center.pt")
+            center_dict = torch.load(Path(self.model_dir, "best_center.pt"))
             self.center = center_dict["center"]
             self.radius = center_dict["radius"]
             # self.center = self.center.view(1,-1)
@@ -292,15 +302,15 @@ class Predictor:
             pickle.dump(test_normal_results, f)
 
         print("Saving test abnormal results")
-        with open(self.model_dir + "test_abnormal_results", "wb") as f:
+        with open(Path(self.model_dir, "test_abnormal_results"), "wb") as f:
             pickle.dump(test_abnormal_results, f)
 
         print("Saving test normal errors")
-        with open(self.model_dir + "test_normal_errors.pkl", "wb") as f:
+        with open(Path(self.model_dir, "test_normal_errors.pkl"), "wb") as f:
             pickle.dump(test_normal_errors, f)
 
         print("Saving test abnormal results")
-        with open(self.model_dir + "test_abnormal_errors.pkl", "wb") as f:
+        with open(Path(self.model_dir, "test_abnormal_errors.pkl"), "wb") as f:
             pickle.dump(test_abnormal_errors, f)
 
         params = {

@@ -109,13 +109,14 @@ def train_model(
     open(Path(config.CONFIG_DIR, "run_id.txt"), "w").write(run_id)
 
 
+@app.command()
 def predict(args_fp: str = "config/args.json"):
     args = Namespace(**load_dict(filepath=args_fp))
     model_dir = Path(config.OUTPUT_DIR, args.experiment_name)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     args.device = device
     args.scale_path = Path(model_dir, "scale.pkl")
-    Predictor(options).predict()
+    Predictor(args).predict()
 
 
 if __name__ == "__main__":
