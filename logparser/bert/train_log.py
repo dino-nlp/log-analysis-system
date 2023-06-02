@@ -180,7 +180,6 @@ class Trainer:
             avg_train_loss, train_dist = self.trainer.train(epoch)
             avg_loss, valid_dist = self.trainer.valid(epoch)
             mlflow.log_metrics({"train_loss": avg_train_loss, "val_loss": avg_loss}, step=epoch)
-            # mlflow.log_metrics({"train_dist": train_dist, "valid_dist": valid_dist}, step=epoch)
 
             if self.hypersphere_loss:
                 self.trainer.radius = self.trainer.get_radius(
@@ -206,9 +205,7 @@ class Trainer:
                     logger.info(f"Save best center: {best_center_path}")
                     torch.save({"center": best_center, "radius": best_radius}, best_center_path)
 
-                    total_dist_path = Path(
-                        self.model_dir, "best_total_dist.pt"
-                    )  # self.model_dir + "best_total_dist.pt"
+                    total_dist_path = Path(self.model_dir, "best_total_dist.pt")
                     logger.info(f"save total dist: {total_dist_path}")
                     torch.save(total_dist, total_dist_path)
             else:

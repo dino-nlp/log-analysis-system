@@ -102,9 +102,20 @@ def train_model(
     with mlflow.start_run(run_name=run_name):
         run_id = mlflow.active_run().info.run_id
         logger.info(f"run_id: {run_id}")
-        Trainer(args).train()
         mlflow.log_params(vars(args))
+        Trainer(args).train()
         mlflow.log_artifacts(model_dir)
+
+    open(Path(config.CONFIG_DIR, "run_id.txt"), "w").write(run_id)
+
+
+def predict(args_fp: str = "config/args.json"):
+    args = Namespace(**load_dict(filepath=args_fp))
+    model_dir = Path(config.OUTPUT_DIR, args.experiment_name)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    args.device = device
+    args.scale_path = Path(model_dir, "scale.pkl")
+    Predictor(options).predict()
 
 
 if __name__ == "__main__":

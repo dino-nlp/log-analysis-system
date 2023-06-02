@@ -46,6 +46,10 @@ preprocessing:
 	python logparser/data.py --window-size=5 --step-size=1 --train-ratio=0.4 && \
 	python logparser/logbert.py create-vocab
 
+.PHONY: train
+train:
+	python logparser/logbert.py train-model
+
 .PHONY: mlflow
 mlflow:
 	mlflow server -h 0.0.0.0 -p 8000 --backend-store-uri ./stores/model/

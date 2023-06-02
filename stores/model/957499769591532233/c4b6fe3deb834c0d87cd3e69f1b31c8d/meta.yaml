@@ -1,0 +1,15 @@
+artifact_uri: file:///Volumes/Data/projects/log-analysis-system/stores/model/957499769591532233/c4b6fe3deb834c0d87cd3e69f1b31c8d/artifacts
+end_time: 1685688876842
+entry_point_name: ''
+experiment_id: '957499769591532233'
+lifecycle_stage: active
+run_id: c4b6fe3deb834c0d87cd3e69f1b31c8d
+run_name: window_size_?_test_size_?
+run_uuid: c4b6fe3deb834c0d87cd3e69f1b31c8d
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1685688515287
+status: 3
+tags: []
+user_id: ngothai

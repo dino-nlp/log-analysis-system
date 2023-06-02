@@ -6,10 +6,10 @@ numpyencoder==0.3.0
 optuna==3.1.1
 pandas==1.5.3
 scikit-learn==1.2.2
-torch
-torchvision
-lightning
-torchmetrics
+torch==2.0.0
+# torchvision
+# lightning
+# torchmetrics
 
 # data / data source
 dvc==2.58.1
