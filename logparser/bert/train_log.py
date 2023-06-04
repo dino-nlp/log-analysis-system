@@ -8,7 +8,6 @@ import mlflow
 import pandas as pd
 import seaborn as sns
 import torch
-import tqdm
 from numpyencoder import NumpyEncoder
 from torch.utils.data import DataLoader
 
@@ -185,6 +184,7 @@ class Trainer:
                 self.trainer.radius = self.trainer.get_radius(
                     train_dist + valid_dist, self.trainer.nu
                 )
+                mlflow.log_metric("hypersphere_radius", self.trainer.radius, step=epoch)
 
             # save model after 10 warm up epochs
             if avg_loss < best_loss:
@@ -192,7 +192,7 @@ class Trainer:
                 self.trainer.save(self.model_path)
                 epochs_no_improve = 0
 
-                if epoch > 10 and self.hypersphere_loss:
+                if epoch > self.n_epochs_stop and self.hypersphere_loss:
                     best_center = self.trainer.hyper_center
                     best_radius = self.trainer.radius
                     total_dist = train_dist + valid_dist
@@ -222,9 +222,9 @@ class Trainer:
             outputs = 0
             total_samples = 0
             for data_loader in data_loader_list:
-                totol_length = len(data_loader)
-                data_iter = tqdm.tqdm(enumerate(data_loader), total=totol_length)
-                for i, data in data_iter:
+                # totol_length = len(data_loader)
+                # data_iter = tqdm.tqdm(enumerate(data_loader), total=totol_length)
+                for i, data in enumerate(data_loader):
                     data = {key: value.to(self.device) for key, value in data.items()}
 
                     result = self.trainer.model.forward(data["bert_input"], data["time_input"])

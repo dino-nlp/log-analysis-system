@@ -102,11 +102,10 @@ def train_model(
     with mlflow.start_run(run_name=run_name):
         run_id = mlflow.active_run().info.run_id
         logger.info(f"run_id: {run_id}")
+        open(Path(config.CONFIG_DIR, "run_id.txt"), "w").write(run_id)
         mlflow.log_params(vars(args))
         Trainer(args).train()
         mlflow.log_artifacts(model_dir)
-
-    open(Path(config.CONFIG_DIR, "run_id.txt"), "w").write(run_id)
 
 
 @app.command()
